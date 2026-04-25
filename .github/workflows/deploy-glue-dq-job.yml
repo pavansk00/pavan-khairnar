@@ -45,13 +45,13 @@ jobs:
             # update-job expects a JobUpdate object (no top-level Name).
             # update-job overwrites the previous definition, so keep Role+Command intact. [2](https://docs.aws.amazon.com/cli/latest/reference/glue/update-job.html)
             python - <<'PY'
-import json
-p="glue/jobs/dq_job.json"
-d=json.load(open(p))
-d.pop("Name", None)   # remove Name for JobUpdate
-open("/tmp/dq_job_update.json","w").write(json.dumps(d))
-print("Prepared /tmp/dq_job_update.json")
-PY
+            import json
+            p="glue/jobs/dq_job.json"
+            d=json.load(open(p))
+            d.pop("Name", None)   # remove Name for JobUpdate
+            open("/tmp/dq_job_update.json","w").write(json.dumps(d))
+            print("Prepared /tmp/dq_job_update.json")
+            PY
 
             aws glue update-job \
               --job-name "$JOB_NAME" \
