@@ -11,15 +11,17 @@
   "Timeout": 60,
   "MaxRetries": 0,
   "DefaultArguments": {
-    "--job-language": "python",
-    "--enable-continuous-cloudwatch-log": "true",
-    "--enable-metrics": "true",
+  "--job-language": "python",
+  "--enable-continuous-cloudwatch-log": "true",
+  "--enable-metrics": "true",
 
-    "--hudi_base_path": "s3://pavan-account-curated-pkr/account_hudi/",
-    "--hudi_table": "account_hudi",
+  "--datalake-formats": "hudi",
+  "--conf": "spark.serializer=org.apache.spark.serializer.KryoSerializer",
 
-    "--input_bucket": "pavan-account-raw-pkr",
-    "--input_key": "incoming/ACCOUNT_2026-04-25.csv",
-    "--business_date": "2026-04-25"
-  }
+  "--hudi_base_path": "s3://pavan-account-curated-pkr/account_hudi/",
+  "--hudi_table": "account_hudi",
+  "--input_bucket": "pavan-account-raw-pkr",
+  "--input_key": "incoming/ACCOUNT_2026-04-25.csv",
+  "--business_date": "2026-04-25"
+}
 }
