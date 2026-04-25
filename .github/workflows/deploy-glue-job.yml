@@ -1,0 +1,55 @@
+name: Deploy Glue Job (Create/Update)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "glue/jobs/**"
+      - ".github/workflows/deploy-glue-job.yml"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-2
+  GLUE_JOB_NAME: glue-dq-account
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::756118984406:role/Role-GitHubActions-Deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Validate job config file exists
+        run: |
+          test -f glue/jobs/dq_job.json || (echo "ERROR: glue/jobs/dq_job.json not found" && exit 1)
+
+      - name: Create or Update Glue Job
+        run: |
+          set -e
+          echo "Checking if job exists: $GLUE_JOB_NAME"
+          if aws glue get-job --job-name "$GLUE_JOB_NAME" --region "$AWS_REGION" > /dev/null 2>&1; then
+            echo "Job exists. Updating..."
+            aws glue update-job \
+              --job-name "$GLUE_JOB_NAME" \
+              --job-update file://glue/jobs/dq_job.json \
+              --region "$AWS_REGION"
+          else
+            echo "Job not found. Creating..."
+            aws glue create-job \
+              --name "$GLUE_JOB_NAME" \
+              --cli-input-json file://glue/jobs/dq_job.json \
+              --region "$AWS_REGION"
+          fi
