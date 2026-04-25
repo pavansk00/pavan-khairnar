@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - "glue/jobs/**"
+      - "glue/job/**"
       - ".github/workflows/deploy-glue-job.yml"
   workflow_dispatch: {}
 
@@ -34,7 +34,7 @@ jobs:
 
       - name: Validate job config file exists
         run: |
-          test -f glue/jobs/dq_job.json || (echo "ERROR: glue/jobs/dq_job.json not found" && exit 1)
+          test -f glue/job/dq_job.json || (echo "ERROR: glue/job/dq_job.json not found" && exit 1)
 
       - name: Create or Update Glue Job
         run: |
@@ -44,12 +44,12 @@ jobs:
             echo "Job exists. Updating..."
             aws glue update-job \
               --job-name "$GLUE_JOB_NAME" \
-              --job-update file://glue/jobs/dq_job.json \
+              --job-update file://glue/job/dq_job.json \
               --region "$AWS_REGION"
           else
             echo "Job not found. Creating..."
             aws glue create-job \
               --name "$GLUE_JOB_NAME" \
-              --cli-input-json file://glue/jobs/dq_job.json \
+              --cli-input-json file://glue/job/dq_job.json \
               --region "$AWS_REGION"
           fi
