@@ -1,0 +1,94 @@
+name: Deploy Athena DB & Tables
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "athena/sql/**"
+      - ".github/workflows/deploy-athena-ddl.yml"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-2
+  ATHENA_WORKGROUP: account-pipeline-wg
+  ATHENA_RESULTS: s3://pavan-account-output-pkr/athena-results/
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::756118984406:role/Role-GitHubActions-Deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Create/Update Athena Workgroup (sets query result location)
+        run: |
+          set -e
+          if aws athena get-work-group --work-group "${ATHENA_WORKGROUP}" --region "${AWS_REGION}" > /dev/null 2>&1; then
+            echo "Workgroup exists. Updating output location..."
+            aws athena update-work-group \
+              --work-group "${ATHENA_WORKGROUP}" \
+              --configuration "ResultConfiguration={OutputLocation=${ATHENA_RESULTS}},EnforceWorkGroupConfiguration=true" \
+              --region "${AWS_REGION}"
+          else
+            echo "Workgroup not found. Creating..."
+            aws athena create-work-group \
+              --name "${ATHENA_WORKGROUP}" \
+              --configuration "ResultConfiguration={OutputLocation=${ATHENA_RESULTS}},EnforceWorkGroupConfiguration=true" \
+              --region "${AWS_REGION}"
+          fi
+
+      - name: Run Athena SQL files (one statement per execution)
+        run: |
+          set -e
+
+          run_query () {
+            SQL_FILE="$1"
+            QUERY=$(cat "$SQL_FILE")
+
+            echo "Running: $SQL_FILE"
+            QID=$(aws athena start-query-execution \
+              --query-string "$QUERY" \
+              --work-group "${ATHENA_WORKGROUP}" \
+              --region "${AWS_REGION}" \
+              --query "QueryExecutionId" --output text)
+
+            echo "QueryExecutionId: $QID"
+
+            # Poll until finished
+            while true; do
+              STATE=$(aws athena get-query-execution \
+                --query-execution-id "$QID" \
+                --region "${AWS_REGION}" \
+                --query "QueryExecution.Status.State" --output text)
+
+              echo "State: $STATE"
+              if [ "$STATE" = "SUCCEEDED" ]; then
+                break
+              elif [ "$STATE" = "FAILED" ] || [ "$STATE" = "CANCELLED" ]; then
+                REASON=$(aws athena get-query-execution \
+                  --query-execution-id "$QID" \
+                  --region "${AWS_REGION}" \
+                  --query "QueryExecution.Status.StateChangeReason" --output text)
+                echo "Athena failed: $REASON"
+                exit 1
+              fi
+              sleep 5
+            done
+          }
+
+          run_query athena/sql/01_create_db.sql
+          run_query athena/sql/02_create_output_table.sql
+          run_query athena/sql/03_add_partition_2026-04-25.sql
