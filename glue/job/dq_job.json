@@ -10,6 +10,7 @@
   "WorkerType": "G.1X",
   "NumberOfWorkers": 2,
   "Timeout": 10,
+  "MaxRetries": 0,
   "DefaultArguments": {
     "--job-language": "python",
     "--enable-continuous-cloudwatch-log": "true",
