@@ -15,6 +15,8 @@
     "--enable-continuous-cloudwatch-log": "true",
     "--enable-metrics": "true",
     "--business_date": "2026-04-25",
+    "--datalake-formats": "hudi",
+    "--conf": "spark.serializer=org.apache.spark.serializer.KryoSerializer",
     "--hudi_base_path": "s3://pavan-account-curated-pkr/account_hudi/",
     "--output_path": "s3://pavan-account-output-pkr/business_output/feed=ACCOUNT/business_date=2026-04-25/"
   }
