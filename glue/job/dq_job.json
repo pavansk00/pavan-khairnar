@@ -1,5 +1,4 @@
 {
-  "Name": "glue-dq-account",
   "Role": "arn:aws:iam::756118984406:role/Role-Glue-AccountPipeline",
   "Command": {
     "Name": "glueetl",
@@ -9,7 +8,7 @@
   "GlueVersion": "4.0",
   "WorkerType": "G.1X",
   "NumberOfWorkers": 2,
-  "Timeout": 10,
+  "Timeout": 15,
   "MaxRetries": 0,
   "DefaultArguments": {
     "--job-language": "python",
