@@ -40,7 +40,7 @@ jobs:
             echo "Workgroup exists. Updating output location..."
             aws athena update-work-group \
               --work-group "${ATHENA_WORKGROUP}" \
-              --configuration "ResultConfiguration={OutputLocation=${ATHENA_RESULTS}},EnforceWorkGroupConfiguration=true" \
+              --configuration-updates "ResultConfigurationUpdates={OutputLocation=${ATHENA_RESULTS}},EnforceWorkGroupConfiguration=true" \
               --region "${AWS_REGION}"
           else
             echo "Workgroup not found. Creating..."
@@ -56,7 +56,9 @@ jobs:
 
           run_query () {
             SQL_FILE="$1"
-            QUERY=$(cat "$SQL_FILE")
+
+            # Remove Windows CRLF if any (prevents odd parsing issues)
+            QUERY=$(tr -d '\r' < "$SQL_FILE")
 
             echo "Running: $SQL_FILE"
             QID=$(aws athena start-query-execution \
