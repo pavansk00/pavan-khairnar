@@ -1,0 +1,66 @@
+name: Deploy Glue DQ Job
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "glue/jobs/dq_job.json"
+      - ".github/workflows/deploy-glue-dq-job.yml"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::756118984406:role/Role-GitHubActions-Deploy
+          aws-region: ap-southeast-2
+
+      - name: Verify AWS identity (debug)
+        run: aws sts get-caller-identity
+
+      - name: Validate dq_job.json exists in repo
+        run: |
+          test -f glue/jobs/dq_job.json || (echo "ERROR: glue/jobs/dq_job.json not found in repo" && exit 1)
+
+      - name: Create or Update Glue Job from dq_job.json
+        run: |
+          JOB_NAME="glue-dq-account"
+
+          echo "Checking if Glue job exists: $JOB_NAME"
+          if aws glue get-job --job-name "$JOB_NAME" --region ap-southeast-2 >/dev/null 2>&1; then
+            echo "Job exists. Updating..."
+
+            # update-job expects a JobUpdate object (no top-level Name).
+            # update-job overwrites the previous definition, so keep Role+Command intact. [2](https://docs.aws.amazon.com/cli/latest/reference/glue/update-job.html)
+            python - <<'PY'
+import json
+p="glue/jobs/dq_job.json"
+d=json.load(open(p))
+d.pop("Name", None)   # remove Name for JobUpdate
+open("/tmp/dq_job_update.json","w").write(json.dumps(d))
+print("Prepared /tmp/dq_job_update.json")
+PY
+
+            aws glue update-job \
+              --job-name "$JOB_NAME" \
+              --job-update file:///tmp/dq_job_update.json \
+              --region ap-southeast-2
+          else
+            echo "Job does not exist. Creating..."
+            # create-job requires Role and Command fields present. [1](https://docs.aws.amazon.com/cli/latest/reference/glue/create-job.html)
+            aws glue create-job \
+              --cli-input-json file://glue/jobs/dq_job.json \
+              --region ap-southeast-2
+          fi
