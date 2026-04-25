@@ -1,0 +1,21 @@
+{
+  "Role": "arn:aws:iam::756118984406:role/Role-Glue-AccountPipeline",
+  "Command": {
+    "Name": "glueetl",
+    "ScriptLocation": "s3://pavan-account-curated-pkr/glue/output/output_account.py",
+    "PythonVersion": "3"
+  },
+  "GlueVersion": "4.0",
+  "WorkerType": "G.1X",
+  "NumberOfWorkers": 2,
+  "Timeout": 30,
+  "MaxRetries": 0,
+  "DefaultArguments": {
+    "--job-language": "python",
+    "--enable-continuous-cloudwatch-log": "true",
+    "--enable-metrics": "true",
+    "--business_date": "2026-04-25",
+    "--hudi_base_path": "s3://pavan-account-curated-pkr/account_hudi/",
+    "--output_path": "s3://pavan-account-output-pkr/business_output/feed=ACCOUNT/business_date=2026-04-25/"
+  }
+}
