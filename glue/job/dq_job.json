@@ -1,0 +1,18 @@
+{
+  "Name": "glue-dq-account",
+  "Role": "arn:aws:iam::756118984406:role/Role-Glue-AccountPipeline",
+  "Command": {
+    "Name": "glueetl",
+    "ScriptLocation": "s3://pavan-account-curated-pkr/glue/dq/dq_account.py",
+    "PythonVersion": "3"
+  },
+  "GlueVersion": "4.0",
+  "WorkerType": "G.1X",
+  "NumberOfWorkers": 2,
+  "Timeout": 10,
+  "DefaultArguments": {
+    "--job-language": "python",
+    "--enable-continuous-cloudwatch-log": "true",
+    "--enable-metrics": "true"
+  }
+}
