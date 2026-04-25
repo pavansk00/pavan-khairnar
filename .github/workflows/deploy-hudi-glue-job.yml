@@ -1,0 +1,55 @@
+name: Deploy Glue Job - Hudi Load (Create/Update)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "glue/job/hudi_job.json"
+      - ".github/workflows/deploy-hudi-glue-job.yml"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-2
+  GLUE_JOB_NAME: glue-hudi-account-load
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::756118984406:role/Role-GitHubActions-Deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Validate job config file exists
+        run: |
+          test -f glue/job/hudi_job.json || (echo "ERROR: glue/job/hudi_job.json not found in repo" && exit 1)
+
+      - name: Create or Update Glue Job (Hudi load)
+        run: |
+          set -e
+          echo "Checking if job exists: $GLUE_JOB_NAME"
+          if aws glue get-job --job-name "$GLUE_JOB_NAME" --region "$AWS_REGION" > /dev/null 2>&1; then
+            echo "Job exists. Updating..."
+            aws glue update-job \
+              --job-name "$GLUE_JOB_NAME" \
+              --job-update file://glue/job/hudi_job.json \
+              --region "$AWS_REGION"
+          else
+            echo "Job not found. Creating..."
+            aws glue create-job \
+              --name "$GLUE_JOB_NAME" \
+              --cli-input-json file://glue/job/hudi_job.json \
+              --region "$AWS_REGION"
+          fi
