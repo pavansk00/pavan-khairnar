@@ -65,8 +65,11 @@ jobs:
             SQL_FILE="$1"
 
             # Remove Windows CRLF if any (prevents odd parsing issues)
-            QUERY=$(tr -d '\r' < "$SQL_FILE")
-
+            QUERY=$(tr -d '\r' < "$SQL_FILE" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            if [ -z "$QUERY" ]; then
+              echo "ERROR: SQL file is empty or only whitespace: $SQL_FILE"
+              exit 1
+            fi
             echo "Running: $SQL_FILE"
             QID=$(aws athena start-query-execution \
               --query-string "$QUERY" \
