@@ -1,0 +1,55 @@
+{
+  "Rules": [
+    {
+      "ResourceType": "collection",
+      "Resource": [
+        "collection/pavan-serverless"
+      ],
+      "Permission": [
+        "aoss:CreateCollectionItems",
+        "aoss:DeleteCollectionItems",
+        "aoss:UpdateCollectionItems",
+        "aoss:DescribeCollectionItems"
+      ],
+      "Principal": [
+        "arn:aws:iam::756118984406:user/pavan",
+        "arn:aws:iam::756118984406:role/Role-Lambda-AccountPipeline"
+      ]
+    },
+    {
+      "ResourceType": "index",
+      "Resource": [
+        "index/pavan-serverless/*"
+      ],
+      "Permission": [
+        "aoss:CreateIndex",
+        "aoss:DeleteIndex",
+        "aoss:UpdateIndex",
+        "aoss:DescribeIndex",
+        "aoss:ReadDocument",
+        "aoss:WriteDocument"
+      ],
+      "Principal": [
+        "arn:aws:iam::756118984406:user/pavan",
+        "arn:aws:iam::756118984406:role/Role-Lambda-AccountPipeline"
+      ]
+    },
+    {
+      "ResourceType": "model",
+      "Resource": [
+        "model/pavan-serverless/*"
+      ],
+      "Permission": [
+        "aoss:CreateMLResource",
+        "aoss:DeleteMLResource",
+        "aoss:UpdateMLResource",
+        "aoss:DescribeMLResource",
+        "aoss:ExecuteMLResource"
+      ],
+      "Principal": [
+        "arn:aws:iam::756118984406:user/pavan",
+        "arn:aws:iam::756118984406:role/Role-Lambda-AccountPipeline"
+      ]
+    }
+  ]
+}

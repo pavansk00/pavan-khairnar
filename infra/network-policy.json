@@ -1,0 +1,20 @@
+{
+  "Rules": [
+    {
+      "ResourceType": "collection",
+      "Resource": [
+        "collection/pavan-serverless"
+      ],
+      "Description": "Public network access for OpenSearch Serverless collection",
+      "AllowFromPublic": true
+    },
+    {
+      "ResourceType": "dashboard",
+      "Resource": [
+        "collection/pavan-serverless"
+      ],
+      "Description": "Public access to OpenSearch Dashboards",
+      "AllowFromPublic": true
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+name: Create OpenSearch Serverless Collection
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  opensearch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # 1️⃣ Network policy
+      - name: Create network policy
+        run: |
+          aws opensearchserverless create-security-policy \
+            --type network \
+            --name pavan-serverless-network \
+            --policy file://infra/network-policy.json || true
+
+      # 2️⃣ Data access policy
+      - name: Create data access policy
+        run: |
+          aws opensearchserverless create-access-policy \
+            --type data \
+            --name pavan-serverless-access \
+            --policy file://infra/access-policy.json || true
+
+      # 3️⃣ Create collection
+      - name: Create OpenSearch collection
+        run: |
+          aws opensearchserverless create-collection \
+            --name pavan-serverless \
+            --type VECTORSEARCH \
+            --description "GenAI RAG vector collection" || true
+
+      # 4️⃣ Wait for ACTIVE
+      - name: Wait for collection to be active
+        run: sleep 120
+
+      # 5️⃣ Create vector index (SIGNED)
+      - name: Create vector index
+        run: |
+          pip install opensearch-py requests-aws4auth
+
+          python <<'EOF'
+          from opensearchpy import OpenSearch, RequestsHttpConnection
+          from requests_aws4auth import AWS4Auth
+          import boto3, json, os
+
+          session = boto3.Session()
+          creds = session.get_credentials()
+          region = os.environ["AWS_REGION"]
+
+          auth = AWS4Auth(
+              creds.access_key,
+              creds.secret_key,
+              region,
+              "aoss",
+              session_token=creds.token
+          )
+
+          client = OpenSearch(
+              hosts=[{
+                  "host": os.popen(
+                      "aws opensearchserverless list-collections "
+                      "--query \"collectionSummaries[?name=='pavan-serverless'].collectionEndpoint\" "
+                      "--output text"
+                  ).read().strip().replace("https://", ""),
+                  "port": 443
+              }],
+              http_auth=auth,
+              use_ssl=True,
+              verify_certs=True,
+              connection_class=RequestsHttpConnection
+          )
+
+          with open("infra/index-mapping.json") as f:
+              mapping = json.load(f)
+
+          client.indices.create(
+              index="pav-index",
+              body=mapping,
+              ignore=400
+          )
+
+          print("✅ Vector index created (or already exists)")
+          EOF
